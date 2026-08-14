@@ -36,10 +36,11 @@ cd Deepseek-Harness-GUI
 swift build
 ```
 
-To assemble the unsigned app and DMG:
+To assemble the unsigned app alone or package the release DMG:
 
 ```bash
 ./scripts/build-app.sh
+# package-dmg.sh rebuilds the app before packaging it
 ./scripts/package-dmg.sh
 ```
 
