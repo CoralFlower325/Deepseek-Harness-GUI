@@ -40,7 +40,11 @@ can locate an existing executable or confirm installation of the current npm
 release into Application Support.
 
 <p align="center">
-  <img src="docs/images/app-preview.png" alt="DeepSeek Harness GUI running on macOS" width="100%" />
+  <a href="docs/images/app-preview.png">
+    <img src="docs/images/app-preview.png" alt="DeepSeek Harness GUI v0.2.1 running a locally discovered Harness on macOS" width="1100" />
+  </a>
+  <br />
+  <sub>DeepSeek Harness GUI v0.2.1 using a locally discovered Harness. Click the image to view the full-resolution PNG.</sub>
 </p>
 
 ## Highlights
@@ -48,8 +52,8 @@ release into Application Support.
 - Native SwiftUI window with the complete Harness Web UI.
 - Dynamic localhost port; no fixed-port conflict.
 - Release DMG includes Node.js and npm without freezing a Harness version.
-- Automatically discovers common local `dsh` installations and supports a
-  user-selected executable path.
+- Automatically discovers common local `dsh` installations, including packages
+  downloaded through `npx`, and supports a user-selected executable path.
 - First-run installer for users who do not already have Harness.
 - Existing Harness profiles, sessions, model settings, and API keys remain in
   the standard `~/.dsh` directory.
@@ -60,7 +64,7 @@ release into Application Support.
 
 ## Requirements
 
-The current `v0.2.0` binary release supports:
+The current `v0.2.1` binary release supports:
 
 - macOS 14 or later
 - Apple Silicon (`arm64`)
@@ -72,7 +76,7 @@ on another Mac with a compatible Swift and Node.js toolchain.
 ## Download and install
 
 1. Open the [latest GitHub Release](https://github.com/CoralFlower325/Deepseek-Harness-GUI/releases/latest).
-2. Download `Deepseek-Harness-GUI-v0.2.0-arm64.dmg`.
+2. Download `Deepseek-Harness-GUI-v0.2.1-arm64.dmg`.
 3. Open the DMG.
 4. Drag **DeepSeek Harness.app** into **Applications**.
 5. Start the app and choose a workspace from the toolbar when needed.
@@ -108,16 +112,16 @@ sessions, and API-key configuration. The Swift wrapper does not copy `~/.dsh`
 into the application bundle, repository, or DMG.
 
 Automatic mode checks a previously selected path, common Homebrew and user-level
-locations, and the app's inherited `PATH`. A discovered local executable is
-preferred over an app-managed runtime. If automatic discovery misses an existing
-installation, choose **Select dsh…** and point the app to the executable.
+locations, packages previously downloaded by `npx @deepseek-ai/dsh`, and the
+app's inherited `PATH`. A discovered local executable is preferred over an
+app-managed runtime. If automatic discovery misses an existing installation,
+choose **Select dsh…** and point the app to the executable.
 
-When no local or managed runtime exists, the first-run screen asks the user to
-choose one of three actions:
+When no local or managed runtime exists, the first-run screen offers two setup
+routes and a separate re-detection action:
 
 1. select an already installed `dsh` executable;
-2. confirm download and installation of the current npm release; or
-3. postpone setup.
+2. confirm download and installation of the current npm release.
 
 ## Runtime management
 
