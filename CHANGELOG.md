@@ -1,5 +1,33 @@
 # Changelog / 更新日志
 
+## v0.2.1 — npx discovery and interface refinement / npx 发现与界面优化
+
+### English
+
+- Show the GUI version in the window toolbar.
+- Discover Harness packages previously downloaded through
+  `npx @deepseek-ai/dsh`, in addition to global `dsh` installations.
+- Reorganize the toolbar so workspace, app identity, runtime status, restart,
+  and logs have distinct roles without duplicated titles.
+- Replace the sparse first-run screen with clear choices for an existing local
+  installation or a GUI-managed npm installation.
+
+> This release is unsigned and unnotarized. macOS Gatekeeper may block the first
+> launch. Use Finder's **Open** action or **System Settings → Privacy & Security →
+> Open Anyway** if you intentionally downloaded the DMG from this repository.
+
+### 简体中文
+
+- 在窗口顶部工具栏显示 GUI 版本。
+- 除全局 `dsh` 安装外，自动发现此前通过 `npx @deepseek-ai/dsh` 下载的 Harness。
+- 重新组织顶部工具栏，清晰区分工作区、App 标识、Runtime 状态、重启和日志，
+  不再重复显示标题。
+- 重构首次设置页，明确区分使用本机已有安装与由 GUI 从 npm 安装两种路径。
+
+> 此版本未签名、未公证，macOS Gatekeeper 可能阻止首次启动。如果你确认 DMG
+> 来自本仓库，可以使用 Finder 的**打开**操作，或前往**系统设置 → 隐私与安全性
+> → 仍要打开**。
+
 ## v0.2.0 — Local-first runtime setup / 本机优先 Runtime 设置
 
 ### English
