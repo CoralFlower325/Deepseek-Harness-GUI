@@ -11,11 +11,11 @@ performed with an Apple Developer ID.
 2. Update both README files and `CHANGELOG.md` for the new app behavior and
    supported environment. Harness is not embedded in the DMG.
 3. Commit and push all source and documentation changes.
-4. Prepare the bundled Node.js/npm engine and build the DMG:
+4. Prepare the bundled Node.js/npm engine and build the DMG. The packaging
+   script rebuilds the app before creating the disk image:
 
 ```bash
 ./scripts/prepare-engine.sh
-./scripts/build-app.sh
 ./scripts/package-dmg.sh
 ```
 
