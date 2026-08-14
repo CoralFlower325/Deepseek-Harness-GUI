@@ -34,9 +34,10 @@ native SwiftUI window. The app starts `dsh web` as a child process, discovers th
 dynamic localhost address printed when the service is ready, and loads that URL
 in `WKWebView`.
 
-The downloadable DMG contains Node.js, npm, and a seed DeepSeek Harness runtime.
-End users therefore do not need to install a command-line runtime before opening
-the app.
+The downloadable DMG contains Node.js and npm, but no fixed Harness runtime. On
+first launch, the app prefers an existing local `dsh`. If none is found, users
+can locate an existing executable or confirm installation of the current npm
+release into Application Support.
 
 <p align="center">
   <img src="docs/images/app-preview.png" alt="DeepSeek Harness GUI running on macOS" width="100%" />
@@ -46,7 +47,10 @@ the app.
 
 - Native SwiftUI window with the complete Harness Web UI.
 - Dynamic localhost port; no fixed-port conflict.
-- Self-contained Release DMG with Node.js, npm, and a seed Harness runtime.
+- Release DMG includes Node.js and npm without freezing a Harness version.
+- Automatically discovers common local `dsh` installations and supports a
+  user-selected executable path.
+- First-run installer for users who do not already have Harness.
 - Existing Harness profiles, sessions, model settings, and API keys remain in
   the standard `~/.dsh` directory.
 - Runtime updates are downloaded independently of the macOS app.
@@ -56,7 +60,7 @@ the app.
 
 ## Requirements
 
-The current `v0.1.0` binary release supports:
+The current `v0.2.0` binary release supports:
 
 - macOS 14 or later
 - Apple Silicon (`arm64`)
@@ -68,14 +72,14 @@ on another Mac with a compatible Swift and Node.js toolchain.
 ## Download and install
 
 1. Open the [latest GitHub Release](https://github.com/CoralFlower325/Deepseek-Harness-GUI/releases/latest).
-2. Download `Deepseek-Harness-GUI-v0.1.0-arm64.dmg`.
+2. Download `Deepseek-Harness-GUI-v0.2.0-arm64.dmg`.
 3. Open the DMG.
 4. Drag **DeepSeek Harness.app** into **Applications**.
 5. Start the app and choose a workspace from the toolbar when needed.
 
 The GitHub-generated **Source code** ZIP and TAR files are developer sources;
-they do not contain Node.js, npm, or the seed Harness runtime. End users should
-download the DMG asset instead.
+they do not contain the bundled Node.js/npm engine. End users should download
+the DMG asset instead.
 
 ### Installing an unsigned build
 
@@ -103,14 +107,17 @@ This preserves settings created by the official CLI, including model profiles,
 sessions, and API-key configuration. The Swift wrapper does not copy `~/.dsh`
 into the application bundle, repository, or DMG.
 
-The current release does **not** discover or execute a system-installed `dsh`
-from Homebrew, `/usr/local/bin`, `/opt/homebrew/bin`, or a global npm directory.
-It uses only:
+Automatic mode checks a previously selected path, common Homebrew and user-level
+locations, and the app's inherited `PATH`. A discovered local executable is
+preferred over an app-managed runtime. If automatic discovery misses an existing
+installation, choose **Select dsh…** and point the app to the executable.
 
-1. the seed runtime embedded in the DMG; or
-2. runtimes installed by this app under Application Support.
+When no local or managed runtime exists, the first-run screen asks the user to
+choose one of three actions:
 
-Existing configuration is reused even though the system executable is not.
+1. select an already installed `dsh` executable;
+2. confirm download and installation of the current npm release; or
+3. postpone setup.
 
 ## Runtime management
 
@@ -128,6 +135,10 @@ first recorded as `pending`; it becomes `active` only after the process prints a
 usable `dsh web: http://127.0.0.1:...` address. The former active version becomes
 `previous`.
 
+Local installations remain under Homebrew/npm or user control; the GUI never
+overwrites them. It can still report an available npm version and download that
+version as an App-managed alternative.
+
 Available update policies:
 
 - Ask before installing an available version (default)
@@ -141,8 +152,9 @@ an older preview runtime can read data already modified by a newer release.
 
 ```text
 SwiftUI app
-   ├── starts bundled Node.js
-   ├── launches @deepseek-ai/dsh web --host 127.0.0.1 --port 0
+   ├── discovers or accepts a local dsh path
+   ├── otherwise installs @deepseek-ai/dsh with bundled Node.js/npm
+   ├── launches dsh web --host 127.0.0.1 --port 0
    ├── reads the ready URL from process output
    └── loads the localhost UI in WKWebView
 
@@ -164,12 +176,12 @@ Prerequisites:
 - Node.js and npm
 - `hdiutil`, included with macOS
 
-Build a release with an explicit Harness version:
+Prepare the bundled Node.js/npm engine and build the app:
 
 ```bash
 git clone https://github.com/CoralFlower325/Deepseek-Harness-GUI.git
 cd Deepseek-Harness-GUI
-./scripts/prepare-runtime.sh 0.1.0-rc.6
+./scripts/prepare-engine.sh
 ./scripts/build-app.sh
 ./scripts/package-dmg.sh
 ```
@@ -185,12 +197,14 @@ notarization in their own release environment.
 
 - The current prebuilt release is Apple Silicon only.
 - The current release is unsigned and unnotarized.
-- A system-installed `dsh` executable is not automatically detected.
-- Runtime installation and updates require access to the npm registry.
+- If no local or previously managed runtime exists, initial setup requires
+  access to the npm registry.
+- Local Harness installations are detected and launched but not modified or
+  upgraded by the GUI.
 - Harness is evolving quickly; changes to its CLI ready message or Web behavior
   may require an app update.
-- The DMG is relatively large because it includes Node.js, npm, Harness, and its
-  runtime dependencies.
+- The DMG still includes Node.js and npm so it can install Harness without a
+  separate developer environment.
 - App updates and Harness runtime updates are separate processes.
 
 ## Repository layout
@@ -200,7 +214,7 @@ Sources/DeepSeekHarnessMac/   Swift application source
 Resources/Info.plist          macOS bundle metadata
 Resources/AppIcon.icns        macOS application icon
 Resources/AppIcon-source.png  source artwork used for the icon
-scripts/prepare-runtime.sh    prepares Node.js, npm, and seed Harness
+scripts/prepare-engine.sh     prepares the bundled Node.js/npm engine
 scripts/build-app.sh          builds the unsigned app bundle
 scripts/package-dmg.sh        creates the drag-to-Applications DMG
 ```

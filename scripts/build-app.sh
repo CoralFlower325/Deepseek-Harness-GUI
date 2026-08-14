@@ -19,10 +19,6 @@ if [[ -d "$PROJECT_DIR/Resources/engine" ]]; then
   COPYFILE_DISABLE=1 cp -R "$PROJECT_DIR/Resources/engine" "$APP_DIR/Contents/Resources/engine"
 fi
 
-if [[ -d "$PROJECT_DIR/Resources/seed-runtime" ]]; then
-  COPYFILE_DISABLE=1 cp -R "$PROJECT_DIR/Resources/seed-runtime" "$APP_DIR/Contents/Resources/seed-runtime"
-fi
-
 chmod +x "$APP_DIR/Contents/MacOS/$EXECUTABLE_NAME"
 find "$APP_DIR" -name '.DS_Store' -delete
 xattr -cr "$APP_DIR"

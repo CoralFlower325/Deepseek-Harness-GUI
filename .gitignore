@@ -4,7 +4,6 @@
 DerivedData/
 dist/
 Resources/engine/
-Resources/seed-runtime/
 *.app
 *.dmg
 *.pkg

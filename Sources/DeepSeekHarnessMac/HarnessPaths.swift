@@ -39,10 +39,6 @@ struct HarnessPaths {
         resourcesRoot.appendingPathComponent("engine/bin", isDirectory: true)
     }
 
-    var seedRuntimeRoot: URL {
-        resourcesRoot.appendingPathComponent("seed-runtime", isDirectory: true)
-    }
-
     func runtimeRoot(for version: String) -> URL {
         runtimesRoot.appendingPathComponent(version, isDirectory: true)
     }

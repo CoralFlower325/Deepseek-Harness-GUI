@@ -4,10 +4,14 @@ import Foundation
 @MainActor
 final class AppModel: ObservableObject {
     @Published private(set) var runState: HarnessRunState = .stopped
+    @Published private(set) var currentRuntime: RuntimeDescriptor?
     @Published var logs = ""
     @Published var showsLogs = false
     @Published var showsRuntimeManager = false
     @Published private(set) var workspaceURL: URL
+    @Published var runtimePreference: RuntimePreference {
+        didSet { UserDefaults.standard.set(runtimePreference.rawValue, forKey: Self.runtimePreferenceKey) }
+    }
     @Published var updatePolicy: UpdatePolicy {
         didSet { UserDefaults.standard.set(updatePolicy.rawValue, forKey: Self.updatePolicyKey) }
     }
@@ -17,6 +21,7 @@ final class AppModel: ObservableObject {
     private var hasStarted = false
 
     private static let workspaceKey = "workspacePath"
+    private static let runtimePreferenceKey = "runtimePreference"
     private static let updatePolicyKey = "updatePolicy"
 
     init() {
@@ -24,6 +29,9 @@ final class AppModel: ObservableObject {
         let defaultWorkspace = FileManager.default.homeDirectoryForCurrentUser
         workspaceURL = storedWorkspace.map { URL(fileURLWithPath: $0, isDirectory: true) }
             ?? defaultWorkspace
+
+        let storedPreference = UserDefaults.standard.string(forKey: Self.runtimePreferenceKey)
+        runtimePreference = RuntimePreference(rawValue: storedPreference ?? "") ?? .automatic
 
         let storedPolicy = UserDefaults.standard.string(forKey: Self.updatePolicyKey)
         updatePolicy = UpdatePolicy(rawValue: storedPolicy ?? "") ?? .ask
@@ -43,38 +51,100 @@ final class AppModel: ObservableObject {
     func startIfNeeded() {
         guard !hasStarted else { return }
         hasStarted = true
-
-        if updatePolicy == .automatic, let pending = runtimeManager.pendingRuntime() {
-            launch(runtime: pending, commitsPending: true)
-        } else {
-            startActiveRuntime()
-        }
+        startPreferredRuntime()
     }
 
-    func startActiveRuntime() {
-        guard let runtime = runtimeManager.activeRuntime() else {
-            runState = .failed("找不到可启动的 Harness runtime。请重新制作包含 seed runtime 的 App。")
+    func startPreferredRuntime() {
+        currentRuntime = nil
+        runtimeManager.refreshLocalRuntime(announce: false)
+
+        if runtimePreference == .automatic, let local = runtimeManager.localRuntime {
+            launch(runtime: local, commitsPending: false, allowsManagedFallback: true)
             return
         }
-        launch(runtime: runtime, commitsPending: false)
+        startManagedRuntimeOrSetup()
     }
 
     func restart() {
         Task {
             await processController.stop()
-            startActiveRuntime()
+            startPreferredRuntime()
         }
     }
 
     func stop() {
         Task {
             await processController.stop()
+            currentRuntime = nil
             runState = .stopped
         }
     }
 
+    func setRuntimePreference(_ preference: RuntimePreference) {
+        runtimePreference = preference
+        restart()
+    }
+
+    func redetectLocalHarness() {
+        runtimeManager.refreshLocalRuntime()
+        guard runtimeManager.localRuntime != nil else {
+            if currentRuntime == nil {
+                runState = .setupRequired("仍未在常见路径中发现 Harness。你可以手动选择 dsh，或下载安装最新版。")
+            }
+            return
+        }
+        runtimePreference = .automatic
+        restart()
+    }
+
+    func chooseLocalHarness() {
+        let panel = NSOpenPanel()
+        panel.title = "选择 DeepSeek Harness 可执行文件"
+        panel.message = "请选择 dsh 可执行文件，而不是工作区目录。"
+        panel.prompt = "使用此 dsh"
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        panel.resolvesAliases = true
+        if let customPath = runtimeManager.customLocalPath {
+            panel.directoryURL = URL(fileURLWithPath: customPath).deletingLastPathComponent()
+        }
+
+        guard panel.runModal() == .OK, let selected = panel.url else { return }
+        do {
+            try runtimeManager.setCustomLocalRuntime(selected)
+            runtimePreference = .automatic
+            Task {
+                await processController.stop()
+                if let local = runtimeManager.localRuntime {
+                    launch(runtime: local, commitsPending: false, allowsManagedFallback: true)
+                }
+            }
+        } catch {
+            runState = .setupRequired(error.localizedDescription)
+        }
+    }
+
+    func installHarnessForSetup() {
+        runState = .installing("正在从 npm 获取并安装最新 Harness…")
+        runtimeManager.installLatest { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                self.runtimePreference = .managed
+                self.activatePending()
+            case .failure(let error):
+                self.runState = .setupRequired("下载安装失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
     func activatePending() {
-        guard let pending = runtimeManager.pendingRuntime() else { return }
+        guard let pending = runtimeManager.pendingRuntime() else {
+            runState = .setupRequired("下载完成后没有找到可启用的 Harness runtime。")
+            return
+        }
+        runtimePreference = .managed
         Task {
             await processController.stop()
             launch(runtime: pending, commitsPending: true)
@@ -83,6 +153,7 @@ final class AppModel: ObservableObject {
 
     func tryPreviousRuntime() {
         guard let previous = runtimeManager.previousRuntime() else { return }
+        runtimePreference = .managed
         Task {
             await processController.stop()
             launch(runtime: previous, commitsPending: false, promotePreviousOnReady: true)
@@ -104,13 +175,29 @@ final class AppModel: ObservableObject {
         restart()
     }
 
+    private func startManagedRuntimeOrSetup(reason: String? = nil) {
+        if let pending = runtimeManager.pendingRuntime(),
+           runtimeManager.activeRuntime() == nil || updatePolicy == .automatic {
+            launch(runtime: pending, commitsPending: true)
+            return
+        }
+        if let active = runtimeManager.activeRuntime() {
+            launch(runtime: active, commitsPending: false)
+            return
+        }
+        currentRuntime = nil
+        runState = .setupRequired(reason)
+    }
+
     private func launch(
         runtime: RuntimeDescriptor,
         commitsPending: Bool,
-        promotePreviousOnReady: Bool = false
+        promotePreviousOnReady: Bool = false,
+        allowsManagedFallback: Bool = false
     ) {
+        currentRuntime = nil
         runState = .starting(runtime.version)
-        appendLog("启动 Harness \(runtime.version)")
+        appendLog("启动 \(runtime.source.title) Harness \(runtime.version)：\(runtime.executableURL.path)")
 
         do {
             try processController.start(
@@ -130,8 +217,9 @@ final class AppModel: ObservableObject {
                         } else if promotePreviousOnReady {
                             try self.runtimeManager.promotePrevious()
                         }
+                        self.currentRuntime = runtime
                         self.runState = .running(version: runtime.version, url: url)
-                        self.applyUpdatePolicyAfterStartup()
+                        self.applyUpdatePolicyAfterStartup(runtime: runtime)
                     } catch {
                         self.runState = .failed("切换 runtime 状态失败：\(error.localizedDescription)")
                     }
@@ -139,14 +227,22 @@ final class AppModel: ObservableObject {
                 onExit: { [weak self] status, intentional, reachedReady in
                     guard let self else { return }
                     if intentional { return }
+                    self.currentRuntime = nil
 
-                    if commitsPending && !reachedReady {
+                    if allowsManagedFallback && !reachedReady {
+                        self.appendLog("本机 Harness 启动失败，尝试 App 管理版本")
+                        self.startManagedRuntimeOrSetup(
+                            reason: "本机 Harness 启动失败，且没有可用的 App 管理版本。请选择 dsh 或下载安装。"
+                        )
+                    } else if commitsPending && !reachedReady {
                         do {
                             try self.runtimeManager.discardPending()
-                            self.appendLog("新版启动失败，重新启动原 active runtime")
-                            self.startActiveRuntime()
+                            self.appendLog("新版启动失败，尝试原 App 管理版本")
+                            self.startManagedRuntimeOrSetup(
+                                reason: "下载的 Harness 启动失败。你可以重试安装或选择本机 dsh。"
+                            )
                         } catch {
-                            self.runState = .failed("新版退出码 \(status)，且无法恢复 active 状态：\(error.localizedDescription)")
+                            self.runState = .failed("新版退出码 \(status)，且无法恢复版本状态：\(error.localizedDescription)")
                         }
                     } else {
                         self.runState = .failed("Harness 已退出，退出码 \(status)")
@@ -154,16 +250,26 @@ final class AppModel: ObservableObject {
                 }
             )
         } catch {
-            runState = .failed("无法启动 Harness：\(error.localizedDescription)")
+            if allowsManagedFallback {
+                appendLog("无法启动本机 Harness：\(error.localizedDescription)")
+                startManagedRuntimeOrSetup(
+                    reason: "无法启动本机 Harness，且没有可用的 App 管理版本。请选择 dsh 或下载安装。"
+                )
+            } else {
+                runState = .failed("无法启动 Harness：\(error.localizedDescription)")
+            }
         }
     }
 
-    private func applyUpdatePolicyAfterStartup() {
+    private func applyUpdatePolicyAfterStartup(runtime: RuntimeDescriptor) {
         switch updatePolicy {
         case .ask:
-            runtimeManager.checkForUpdates()
+            runtimeManager.checkForUpdates(currentVersion: runtime.version)
         case .automatic:
-            runtimeManager.checkForUpdates(installAutomatically: true)
+            runtimeManager.checkForUpdates(
+                currentVersion: runtime.version,
+                installAutomatically: runtime.source == .managed
+            )
         case .pinned:
             break
         }

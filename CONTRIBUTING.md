@@ -32,7 +32,7 @@ Requirements:
 ```bash
 git clone https://github.com/CoralFlower325/Deepseek-Harness-GUI.git
 cd Deepseek-Harness-GUI
-./scripts/prepare-runtime.sh 0.1.0-rc.6
+./scripts/prepare-engine.sh
 swift build
 ```
 
@@ -43,8 +43,8 @@ To assemble the unsigned app and DMG:
 ./scripts/package-dmg.sh
 ```
 
-Generated files under `.build/`, `dist/`, `Resources/engine/`, and
-`Resources/seed-runtime/` must remain outside Git.
+Generated files under `.build/`, `dist/`, and `Resources/engine/` must remain
+outside Git.
 
 ## Pull requests
 

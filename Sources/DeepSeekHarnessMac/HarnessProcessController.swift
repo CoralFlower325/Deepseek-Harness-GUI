@@ -29,18 +29,36 @@ final class HarnessProcessController {
 
         let process = Process()
         let pipe = Pipe()
-        process.executableURL = nodeURL
-        process.arguments = [
-            runtime.entryURL.path,
-            "web",
-            "--host", "127.0.0.1",
-            "--port", "0",
-        ]
+        switch runtime.source {
+        case .managed:
+            process.executableURL = nodeURL
+            process.arguments = [
+                runtime.executableURL.path,
+                "web",
+                "--host", "127.0.0.1",
+                "--port", "0",
+            ]
+        case .local:
+            process.executableURL = runtime.executableURL
+            process.arguments = [
+                "web",
+                "--host", "127.0.0.1",
+                "--port", "0",
+            ]
+        }
         process.currentDirectoryURL = workspace
 
         var environment = ProcessInfo.processInfo.environment
         environment["DSH_HOME"] = dshHome.path
-        environment["PATH"] = nodeBinDirectory.path + ":" + (environment["PATH"] ?? "")
+        let existingPath = environment["PATH"] ?? ""
+        let executableDirectory = runtime.executableURL.deletingLastPathComponent().path
+        environment["PATH"] = [
+            executableDirectory,
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            nodeBinDirectory.path,
+            existingPath,
+        ].filter { !$0.isEmpty }.joined(separator: ":")
         process.environment = environment
         process.standardOutput = pipe
         process.standardError = pipe
@@ -65,13 +83,13 @@ final class HarnessProcessController {
         }
 
         self.process = process
-        self.outputPipe = pipe
+        outputPipe = pipe
         do {
             try process.run()
         } catch {
             pipe.fileHandleForReading.readabilityHandler = nil
             self.process = nil
-            self.outputPipe = nil
+            outputPipe = nil
             throw error
         }
     }

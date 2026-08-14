@@ -32,8 +32,9 @@ DeepSeek Harness GUI 是一个非官方 macOS 原生外壳，用于在 SwiftUI �
 DeepSeek Harness 的 localhost Web UI。应用在后台启动 `dsh web`，读取服务就绪
 后输出的动态本地地址，再通过 `WKWebView` 加载完整界面。
 
-可下载的 DMG 内置 Node.js、npm 和一个初始 DeepSeek Harness runtime，因此普通
-用户无需提前安装命令行环境即可启动应用。
+可下载的 DMG 内置 Node.js 和 npm，但不再固化任何 Harness 版本。首次启动时，
+App 优先使用本机已有的 `dsh`；如果没有发现，用户可以定位已有可执行文件，或
+确认从 npm 将当前版本安装到 Application Support。
 
 <p align="center">
   <img src="docs/images/app-preview.png" alt="在 macOS 上运行的 DeepSeek Harness GUI" width="100%" />
@@ -43,7 +44,9 @@ DeepSeek Harness 的 localhost Web UI。应用在后台启动 `dsh web`，读取
 
 - 使用 SwiftUI 原生窗口承载完整 Harness Web UI。
 - 自动使用动态 localhost 端口，避免固定端口冲突。
-- Release DMG 内置 Node.js、npm 和初始 Harness runtime。
+- Release DMG 内置 Node.js 和 npm，但不固化 Harness 版本。
+- 自动发现常见位置中的本机 `dsh`，并支持用户手动选择可执行文件。
+- 为尚未安装 Harness 的用户提供首次启动安装入口。
 - 沿用标准 `~/.dsh`，保留已有 profile、会话、模型设置和 API Key。
 - Harness runtime 可以独立于 macOS App 下载更新。
 - 新 runtime 只有在输出可加载的 Web URL 后才会启用。
@@ -52,7 +55,7 @@ DeepSeek Harness 的 localhost Web UI。应用在后台启动 `dsh web`，读取
 
 ## 系统要求
 
-当前 `v0.1.0` 二进制版本支持：
+当前 `v0.2.0` 二进制版本支持：
 
 - macOS 14 或更高版本
 - Apple Silicon（`arm64`）
@@ -64,13 +67,13 @@ DeepSeek Harness 的 localhost Web UI。应用在后台启动 `dsh web`，读取
 ## 下载与安装
 
 1. 打开[最新 GitHub Release](https://github.com/CoralFlower325/Deepseek-Harness-GUI/releases/latest)。
-2. 下载 `Deepseek-Harness-GUI-v0.1.0-arm64.dmg`。
+2. 下载 `Deepseek-Harness-GUI-v0.2.0-arm64.dmg`。
 3. 打开 DMG。
 4. 将 **DeepSeek Harness.app** 拖入 **Applications（应用程序）**。
 5. 启动应用，并根据需要从工具栏选择工作区。
 
-GitHub 自动生成的 **Source code** ZIP/TAR 只是开发源码，不包含 Node.js、npm 或
-初始 Harness runtime。普通用户应下载 Release 中的 DMG 附件。
+GitHub 自动生成的 **Source code** ZIP/TAR 只是开发源码，不包含内置 Node.js/npm
+引擎。普通用户应下载 Release 中的 DMG 附件。
 
 ### 安装未签名版本
 
@@ -97,13 +100,15 @@ Gatekeeper。
 因此，官方 CLI 创建的模型 profile、会话和 API Key 配置会继续生效。Swift 外壳
 不会把 `~/.dsh` 复制进 App、源码仓库或 DMG。
 
-当前版本**不会**从 Homebrew、`/usr/local/bin`、`/opt/homebrew/bin` 或 npm 全局
-目录中发现并运行系统已有的 `dsh`。它只使用：
+自动模式会依次检查用户此前选择的路径、常见 Homebrew/用户级目录和 App 继承的
+`PATH`，并优先使用发现的本机 `dsh`。如果自动检测漏掉已有安装，可以点击
+**选择 dsh…** 手动定位可执行文件。
 
-1. DMG 内置的 seed runtime；或
-2. 本应用安装到 Application Support 的 runtime。
+如果既没有本机版本，也没有 App 管理版本，首次启动页会让用户选择：
 
-也就是说，已有配置会复用，但系统中的 `dsh` 可执行程序不会被复用。
+1. 定位已经安装的 `dsh`；
+2. 确认从 npm 下载并安装当前版本；或
+3. 暂不设置。
 
 ## Runtime 管理
 
@@ -120,6 +125,9 @@ Gatekeeper。
 只有进程输出可用的 `dsh web: http://127.0.0.1:...` 地址后才会成为 `active`，
 原 active 版本会成为 `previous`。
 
+本机安装仍由 Homebrew/npm 或用户自行管理，GUI 不会覆盖它。GUI 仍可显示 npm
+中的可用版本，并将其下载为独立的 App 管理版本。
+
 可选更新策略：
 
 - 检测到新版后询问（默认）
@@ -132,8 +140,9 @@ Runtime 回退只切换可执行版本，不保证旧预览版能够读取已被
 
 ```text
 SwiftUI App
-   ├── 启动内置 Node.js
-   ├── 运行 @deepseek-ai/dsh web --host 127.0.0.1 --port 0
+   ├── 自动发现或接受用户选择的本机 dsh
+   ├── 否则使用内置 Node.js/npm 安装 @deepseek-ai/dsh
+   ├── 运行 dsh web --host 127.0.0.1 --port 0
    ├── 从进程输出读取就绪 URL
    └── 在 WKWebView 中加载 localhost UI
 
@@ -154,12 +163,12 @@ Web 服务只绑定 `127.0.0.1`；本外壳不会将其开放为局域网服务�
 - Node.js 和 npm
 - macOS 自带的 `hdiutil`
 
-使用明确的 Harness 版本构建：
+准备内置 Node.js/npm 引擎并构建：
 
 ```bash
 git clone https://github.com/CoralFlower325/Deepseek-Harness-GUI.git
 cd Deepseek-Harness-GUI
-./scripts/prepare-runtime.sh 0.1.0-rc.6
+./scripts/prepare-engine.sh
 ./scripts/build-app.sh
 ./scripts/package-dmg.sh
 ```
@@ -173,10 +182,10 @@ cd Deepseek-Harness-GUI
 
 - 当前预编译版本只支持 Apple Silicon。
 - 当前版本未签名、未公证。
-- 不会自动发现系统已安装的 `dsh` 可执行程序。
-- 安装和更新 runtime 需要访问 npm registry。
+- 如果没有本机或历史 App 管理版本，首次设置需要访问 npm registry。
+- GUI 可以发现和启动本机 Harness，但不会修改或升级该安装。
 - Harness 迭代较快；如果 CLI 就绪输出或 Web 行为变化，可能需要更新 App。
-- DMG 内置 Node.js、npm、Harness 和运行依赖，因此体积较大。
+- DMG 仍内置 Node.js 和 npm，以便在没有开发环境时安装 Harness。
 - App 本体升级与 Harness runtime 升级是两条独立路径。
 
 ## 仓库结构
@@ -186,7 +195,7 @@ Sources/DeepSeekHarnessMac/   Swift 应用源码
 Resources/Info.plist          macOS Bundle 元数据
 Resources/AppIcon.icns        macOS 应用图标
 Resources/AppIcon-source.png  图标源文件
-scripts/prepare-runtime.sh    准备 Node.js、npm 和初始 Harness
+scripts/prepare-engine.sh     准备内置 Node.js/npm 引擎
 scripts/build-app.sh          构建未签名 App Bundle
 scripts/package-dmg.sh        生成拖拽安装式 DMG
 ```

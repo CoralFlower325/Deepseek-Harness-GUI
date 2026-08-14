@@ -30,7 +30,7 @@
 ```bash
 git clone https://github.com/CoralFlower325/Deepseek-Harness-GUI.git
 cd Deepseek-Harness-GUI
-./scripts/prepare-runtime.sh 0.1.0-rc.6
+./scripts/prepare-engine.sh
 swift build
 ```
 
@@ -41,8 +41,7 @@ swift build
 ./scripts/package-dmg.sh
 ```
 
-`.build/`、`dist/`、`Resources/engine/` 和 `Resources/seed-runtime/` 下的生成文件
-不得提交到 Git。
+`.build/`、`dist/` 和 `Resources/engine/` 下的生成文件不得提交到 Git。
 
 ## Pull Request
 

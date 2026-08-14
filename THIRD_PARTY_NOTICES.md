@@ -5,13 +5,14 @@ other projects. Those projects are not maintained by this repository.
 
 ## DeepSeek Harness
 
-Release builds download and bundle `@deepseek-ai/dsh` from npm. DeepSeek
-Harness is maintained at:
+The app can discover a local `dsh` installation or download
+`@deepseek-ai/dsh` from npm into the user's Application Support directory.
+DeepSeek Harness is maintained at:
 
 - https://github.com/deepseek-ai/deepseek-harness
 
-Its package includes its own license and third-party notices. The build scripts
-keep the package files inside the generated runtime.
+Its package includes its own license and third-party notices. DeepSeek Harness
+is not embedded in the source repository or the v0.2.0 DMG.
 
 ## Node.js and npm
 
