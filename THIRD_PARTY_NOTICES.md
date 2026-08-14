@@ -12,7 +12,7 @@ DeepSeek Harness is maintained at:
 - https://github.com/deepseek-ai/deepseek-harness
 
 Its package includes its own license and third-party notices. DeepSeek Harness
-is not embedded in the source repository or the v0.2.0 DMG.
+is not embedded in the source repository or the current DMG.
 
 ## Node.js and npm
 
