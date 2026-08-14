@@ -37,7 +37,11 @@ App 优先使用本机已有的 `dsh`；如果没有发现，用户可以定位�
 确认从 npm 将当前版本安装到 Application Support。
 
 <p align="center">
-  <img src="docs/images/app-preview.png" alt="在 macOS 上运行的 DeepSeek Harness GUI" width="100%" />
+  <a href="docs/images/app-preview.png">
+    <img src="docs/images/app-preview.png" alt="DeepSeek Harness GUI v0.2.1 在 macOS 上运行本机发现的 Harness" width="1100" />
+  </a>
+  <br />
+  <sub>DeepSeek Harness GUI v0.2.1 正在使用本机发现的 Harness；点击图片可查看原始分辨率 PNG。</sub>
 </p>
 
 ## 主要功能
@@ -45,7 +49,7 @@ App 优先使用本机已有的 `dsh`；如果没有发现，用户可以定位�
 - 使用 SwiftUI 原生窗口承载完整 Harness Web UI。
 - 自动使用动态 localhost 端口，避免固定端口冲突。
 - Release DMG 内置 Node.js 和 npm，但不固化 Harness 版本。
-- 自动发现常见位置中的本机 `dsh`，并支持用户手动选择可执行文件。
+- 自动发现常见位置及 `npx` 缓存中的本机 `dsh`，并支持用户手动选择可执行文件。
 - 为尚未安装 Harness 的用户提供首次启动安装入口。
 - 沿用标准 `~/.dsh`，保留已有 profile、会话、模型设置和 API Key。
 - Harness runtime 可以独立于 macOS App 下载更新。
@@ -55,7 +59,7 @@ App 优先使用本机已有的 `dsh`；如果没有发现，用户可以定位�
 
 ## 系统要求
 
-当前 `v0.2.0` 二进制版本支持：
+当前 `v0.2.1` 二进制版本支持：
 
 - macOS 14 或更高版本
 - Apple Silicon（`arm64`）
@@ -67,7 +71,7 @@ App 优先使用本机已有的 `dsh`；如果没有发现，用户可以定位�
 ## 下载与安装
 
 1. 打开[最新 GitHub Release](https://github.com/CoralFlower325/Deepseek-Harness-GUI/releases/latest)。
-2. 下载 `Deepseek-Harness-GUI-v0.2.0-arm64.dmg`。
+2. 下载 `Deepseek-Harness-GUI-v0.2.1-arm64.dmg`。
 3. 打开 DMG。
 4. 将 **DeepSeek Harness.app** 拖入 **Applications（应用程序）**。
 5. 启动应用，并根据需要从工具栏选择工作区。
@@ -100,15 +104,15 @@ Gatekeeper。
 因此，官方 CLI 创建的模型 profile、会话和 API Key 配置会继续生效。Swift 外壳
 不会把 `~/.dsh` 复制进 App、源码仓库或 DMG。
 
-自动模式会依次检查用户此前选择的路径、常见 Homebrew/用户级目录和 App 继承的
-`PATH`，并优先使用发现的本机 `dsh`。如果自动检测漏掉已有安装，可以点击
-**选择 dsh…** 手动定位可执行文件。
+自动模式会依次检查用户此前选择的路径、常见 Homebrew/用户级目录、此前通过
+`npx @deepseek-ai/dsh` 下载的包，以及 App 继承的 `PATH`，并优先使用发现的本机
+`dsh`。如果自动检测漏掉已有安装，可以点击**选择 dsh…**手动定位可执行文件。
 
-如果既没有本机版本，也没有 App 管理版本，首次启动页会让用户选择：
+如果既没有本机版本，也没有 App 管理版本，首次启动页会提供两种设置路径和一个
+独立的重新检测操作：
 
 1. 定位已经安装的 `dsh`；
-2. 确认从 npm 下载并安装当前版本；或
-3. 暂不设置。
+2. 确认从 npm 下载并安装当前版本。
 
 ## Runtime 管理
 
