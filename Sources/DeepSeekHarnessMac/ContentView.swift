@@ -21,29 +21,33 @@ struct ContentView: View {
 
             ToolbarItemGroup(placement: .navigation) {
                 Button(action: model.chooseWorkspace) {
-                    Label(model.workspaceURL.lastPathComponent, systemImage: "folder")
+                    Label("工作区", systemImage: "folder")
                 }
-                .help(model.workspaceURL.path)
+                .help("选择工作区\n\(model.workspaceURL.path)")
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-                StatusLabel(state: model.runState)
-
                 Button {
                     model.showsRuntimeManager = true
                 } label: {
-                    Label("Runtime", systemImage: "shippingbox")
+                    StatusLabel(state: model.runState)
                 }
+                .buttonStyle(.plain)
+                .help("Harness Runtime · \(model.runState.label)")
 
                 Button(action: model.restart) {
                     Label("重启 Harness", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
                 }
+                .help("重启 Harness")
 
                 Button {
                     model.showsLogs.toggle()
                 } label: {
                     Label("日志", systemImage: "terminal")
+                        .labelStyle(.iconOnly)
                 }
+                .help(model.showsLogs ? "隐藏日志" : "显示日志")
             }
         }
         .sheet(isPresented: $model.showsRuntimeManager) {
@@ -56,37 +60,71 @@ struct ContentView: View {
     private var mainContent: some View {
         switch model.runState {
         case .setupRequired(let message):
-            VStack(spacing: 18) {
-                Image(systemName: "shippingbox.and.arrow.backward")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary)
-                Text("未找到 DeepSeek Harness")
-                    .font(.title2.bold())
-                Text("如果你已经安装过 Harness，请选择 dsh 可执行文件；如果尚未安装，可以让 App 从 npm 下载最新版。")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: 560)
+            ZStack {
+                Color(nsColor: .underPageBackgroundColor)
 
-                if let message, !message.isEmpty {
-                    Text(message)
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 620)
+                VStack(spacing: 22) {
+                    Image(systemName: "shippingbox")
+                        .font(.system(size: 34, weight: .medium))
+                        .foregroundStyle(.tint)
+                        .frame(width: 72, height: 72)
+                        .background(.tint.opacity(0.1), in: Circle())
+
+                    VStack(spacing: 8) {
+                        Text("连接 DeepSeek Harness")
+                            .font(.title2.bold())
+                        Text("未在常见位置检测到 dsh。请选择已有安装，或让 GUI 下载并管理最新版。")
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: 520)
+                    }
+
+                    if let message, !message.isEmpty {
+                        Label(message, systemImage: "info.circle")
+                            .font(.callout)
+                            .foregroundStyle(.orange)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 540)
+                    }
+
+                    HStack(alignment: .top, spacing: 14) {
+                        SetupOption(
+                            systemImage: "folder.badge.plus",
+                            title: "使用已有安装",
+                            description: "选择 Homebrew、npm、pnpm 或其他位置中的 dsh。",
+                            buttonTitle: "选择 dsh…",
+                            action: model.chooseLocalHarness
+                        )
+
+                        SetupOption(
+                            systemImage: "arrow.down.circle",
+                            title: "由 GUI 安装",
+                            description: "从 npm 下载最新版，后续可在 Runtime 面板中更新。",
+                            buttonTitle: "下载并安装",
+                            prominent: true,
+                            action: model.installHarnessForSetup
+                        )
+                    }
+
+                    Button("重新检测本机安装", action: model.redetectLocalHarness)
+                        .buttonStyle(.link)
+
+                    Divider()
+
+                    Label("设置、会话和 API Key 继续使用 ~/.dsh，不会被覆盖。", systemImage: "externaldrive")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
-
-                HStack(spacing: 12) {
-                    Button("我已经安装，选择 dsh…", action: model.chooseLocalHarness)
-                    Button("下载安装最新版", action: model.installHarnessForSetup)
-                        .buttonStyle(.borderedProminent)
-                    Button("重新检测", action: model.redetectLocalHarness)
+                .padding(32)
+                .frame(maxWidth: 680)
+                .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(.separator.opacity(0.5), lineWidth: 1)
                 }
-
-                Text("用户设置和 API Key 仍保存在官方目录 ~/.dsh，下载安装不会覆盖这些数据。")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                .shadow(color: .black.opacity(0.06), radius: 20, y: 8)
+                .padding(32)
             }
-            .padding(40)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .installing(let message):
@@ -138,6 +176,48 @@ struct ContentView: View {
     }
 }
 
+private struct SetupOption: View {
+    let systemImage: String
+    let title: String
+    let description: String
+    let buttonTitle: String
+    var prominent = false
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(.tint)
+
+            Text(title)
+                .font(.headline)
+
+            Text(description)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 2)
+
+            if prominent {
+                Button(buttonTitle, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+            } else {
+                Button(buttonTitle, action: action)
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 private struct AppVersionLabel: View {
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版"
@@ -145,9 +225,9 @@ private struct AppVersionLabel: View {
 
     var body: some View {
         HStack(spacing: 7) {
-            Text("DeepSeek Harness GUI")
+            Text("DeepSeek Harness")
                 .font(.headline)
-            Text("v\(version)")
+            Text("GUI v\(version)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 7)
@@ -165,13 +245,34 @@ private struct StatusLabel: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            Image(systemName: "shippingbox")
+                .foregroundStyle(.secondary)
             Circle()
                 .fill(color)
                 .frame(width: 8, height: 8)
-            Text(state.label)
+            Text(compactLabel)
                 .font(.caption)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(.quaternary, in: Capsule())
+    }
+
+    private var compactLabel: String {
+        switch state {
+        case .setupRequired:
+            return "需要设置"
+        case .installing:
+            return "正在安装"
+        case .stopped:
+            return "已停止"
+        case .starting:
+            return "正在启动"
+        case .running:
+            return "运行中"
+        case .failed:
+            return "启动失败"
+        }
     }
 
     private var color: Color {

@@ -266,6 +266,10 @@ final class RuntimeManager: ObservableObject {
             home.appendingPathComponent(".local/bin/dsh"),
             home.appendingPathComponent("Library/pnpm/dsh"),
         ])
+        candidates.append(contentsOf: npxCacheCandidates(
+            home: home,
+            fileManager: fileManager
+        ))
         let environmentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
         candidates.append(contentsOf: environmentPath
             .split(separator: ":")
@@ -278,6 +282,28 @@ final class RuntimeManager: ObservableObject {
             }
         }
         return nil
+    }
+
+    nonisolated private static func npxCacheCandidates(
+        home: URL,
+        fileManager: FileManager
+    ) -> [URL] {
+        let cacheRoot = home.appendingPathComponent(".npm/_npx", isDirectory: true)
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: cacheRoot,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return entries
+            .sorted { left, right in
+                let leftDate = try? left.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+                let rightDate = try? right.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+                return (leftDate ?? .distantPast) > (rightDate ?? .distantPast)
+            }
+            .map { $0.appendingPathComponent("node_modules/.bin/dsh") }
     }
 
     nonisolated private static func localDescriptor(
