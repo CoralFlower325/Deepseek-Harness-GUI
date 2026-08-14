@@ -3,7 +3,9 @@ set -euo pipefail
 
 PROJECT_DIR="${0:A:h:h}"
 APP_DIR="$PROJECT_DIR/dist/DeepSeek Harness.app"
-DMG_PATH="$PROJECT_DIR/dist/DeepSeek-Harness-Mac.dmg"
+APP_VERSION="$(plutil -extract CFBundleShortVersionString raw "$PROJECT_DIR/Resources/Info.plist")"
+BUILD_ARCH="$(uname -m)"
+DMG_PATH="$PROJECT_DIR/dist/Deepseek-Harness-GUI-v$APP_VERSION-$BUILD_ARCH.dmg"
 STAGING_DIR="$PROJECT_DIR/dist/dmg-root"
 
 if [[ ! -d "$APP_DIR" ]]; then

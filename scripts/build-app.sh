@@ -26,8 +26,6 @@ fi
 chmod +x "$APP_DIR/Contents/MacOS/$EXECUTABLE_NAME"
 find "$APP_DIR" -name '.DS_Store' -delete
 xattr -cr "$APP_DIR"
-if ! codesign --force --deep --sign - "$APP_DIR"; then
-  echo "Warning: ad-hoc signing failed; the app was kept unsigned."
-fi
+echo "Built unsigned app bundle. Developer ID signing and notarization are not performed."
 
 echo "$APP_DIR"
