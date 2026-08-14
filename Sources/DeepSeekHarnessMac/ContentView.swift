@@ -15,6 +15,10 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 620)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                AppVersionLabel()
+            }
+
             ToolbarItemGroup(placement: .navigation) {
                 Button(action: model.chooseWorkspace) {
                     Label(model.workspaceURL.lastPathComponent, systemImage: "folder")
@@ -131,6 +135,28 @@ struct ContentView: View {
                 Button("启动", action: model.startPreferredRuntime)
             }
         }
+    }
+}
+
+private struct AppVersionLabel: View {
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版"
+    }
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Text("DeepSeek Harness GUI")
+                .font(.headline)
+            Text("v\(version)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(.quaternary, in: Capsule())
+        }
+        .help("GUI 版本 v\(version)")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("DeepSeek Harness GUI 版本 \(version)")
     }
 }
 
