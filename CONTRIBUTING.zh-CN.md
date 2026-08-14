@@ -34,10 +34,11 @@ cd Deepseek-Harness-GUI
 swift build
 ```
 
-组装未签名 App 和 DMG：
+单独组装未签名 App，或打包 Release DMG：
 
 ```bash
 ./scripts/build-app.sh
+# package-dmg.sh 会先重新构建 App，再进行打包
 ./scripts/package-dmg.sh
 ```
 
