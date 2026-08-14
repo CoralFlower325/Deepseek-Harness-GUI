@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+dist/
+Resources/engine/
+Resources/seed-runtime/
+*.app
+*.dmg
+*.pkg
+*.log
+.env
+.env.*
+!.env.example
